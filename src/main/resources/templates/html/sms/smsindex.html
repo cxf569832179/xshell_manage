@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+	<head>
+		<meta charset="UTF-8">
+		<base th:href="${#request.getContextPath()}+'/'">
+		<title></title>
+		<link rel="stylesheet" href="css/element-ui-2.12.0.css" />
+		<link rel="stylesheet" href="css/css.css" />
+		<script type="text/javascript" src="js/vue.min.js"></script>
+	    <script type="text/javascript" src="js/element-ui-2.12.0.js"></script>
+	    <script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+	    <script type="text/javascript" src="js/Tools.js"></script>
+	    <script type="text/javascript" src="js/myjs.js"></script>
+	    <script type="text/javascript" src="js/fecha.min.js"></script>
+	    <style type="text/css">
+	    .updateP .el-dialog{width :400px;}
+	    .formtd{width :250px;text-align: left;}
+	    .tdlable{width :100px;text-align: right;}
+	    </style>
+	</head>
+
+	<body>
+		<div id="app" v-cloak="">
+
+			<el-card class="box-card">
+				<table id="tableHtml" shadow="always" style="border-collapse:separate; border-spacing:0px 15px;">
+					<tr>
+						<td>&nbsp;短信标识:&nbsp;</td>
+						<td>
+							<el-input style="width: 200px;" v-model="id" placeholder="短信标识"></el-input>
+						</td>
+						<td>&nbsp;短信状态:&nbsp;</td>
+						<td>
+							<el-select style="width: 200px;" v-model="state" placeholder="请选择">
+						    <el-option
+						      v-for="item in stateList"
+						      :key="item.value"
+						      :label="item.label"
+						      :value="item.value">
+						    </el-option>
+						  </el-select>
+						</td>
+						<td style="width: 100px; text-align: left;">
+						 <el-button type="primary" @click="updateData">添加短信</el-button>
+						 <el-button type="info" @click="sendCode">发送短信</el-button>
+						</td>
+					</tr>
+					<tr>
+					<td>&nbsp;添加时间:&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectStartTime"
+						      type="datetime"
+						      placeholder="开始时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td style="text-align: center;">&nbsp;-&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectEndTime"
+						      type="datetime"
+						      placeholder="结束时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td style="width: 250px; text-align: left;">
+							 <el-button type="primary" @click="selectData">查询</el-button>
+							<el-button type="info" @click="resetSelectData">重置</el-button>
+						</td>
+					</tr>
+				</table>
+				<el-table :data="tableData" border style="width: 100%"  v-loading="tableLoading" row-key="subcode" stripe>
+					<el-table-column fixed prop="id" label="短信标识" width="130">	</el-table-column>
+					<el-table-column prop="subcodeMsg" label="短信签名" ></el-table-column>
+					<el-table-column prop="templateMsg" label="模板id" ></el-table-column>
+					<el-table-column prop="templateParp" label="短信内容"></el-table-column>
+					<el-table-column prop="privateKey" label="短信密钥"></el-table-column>
+					<el-table-column prop="sysName" label="所属系统" ></el-table-column>
+					<el-table-column prop="addTime" label="添加时间" ></el-table-column>
+					<el-table-column prop="state" label="状态" :formatter="showstate"></el-table-column>
+					<el-table-column prop="state" label="操作">
+                        <template slot-scope="scope" >
+							<el-button type="text" size="small" @click="free(scope.row)">{{scope.row.state ==1 ? "冻结" : "开启"}}</el-button>
+							<el-button type="text" size="small" @click="editData(scope.row)">编辑</el-button>
+						</template>
+					</el-table-column>
+					
+				</el-table>
+				<br />
+				<div class="block">
+					<el-pagination  @current-change="handleCurrentChange" :current-page="pageNum" :page-sizes="[8]" :page-size="pageSize" layout="total,  prev, pager, next, jumper" :total="total">
+					</el-pagination>
+				</div>
+				
+				
+				<!-- 添加短信弹层 -->
+				<el-dialog title="短信" :visible.sync="dialogUpdate" class="updateP">
+				 	<table id="updateTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;width:100%;">
+					 	<tr>
+						 	<td class="tdlable">&nbsp;短信标识:&nbsp;</td>
+						 	<td class="formtd">
+						 		<el-input style="width: 200px;" v-model="updateForm.id" placeholder="短信标识"></el-input>
+							</td>
+					 	</tr>
+						<tr>
+							<td class="tdlable">&nbsp;短信签名:&nbsp;</td>
+							<td class="formtd">
+								<el-select style="width: 200px;"  v-model="updateForm.subcode" placeholder="请选择">
+									<el-option
+											v-for="item in updateForm.subcodelist"
+											:key="item.subcode"
+											:label="item.remarks"
+											:change="showSms()"
+											:value="item.subcode">
+									</el-option>
+								</el-select>
+							</td>
+						</tr>
+						<tr>
+						 	<td class="tdlable">&nbsp;短信模板:&nbsp;</td>
+						 	<td class="formtd">
+								<el-select style="width: 200px;"  v-model="updateForm.templateId" placeholder="请选择">
+									<el-option
+											v-for="item in updateForm.msglist"
+											:key="item.templateId"
+											:label="item.name"
+											:value="item.templateId"
+											:change="showSms()">
+									</el-option>
+								</el-select>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td class="tdlable">&nbsp;短信通道:&nbsp;</td>
+						 	<td class="formtd">
+								<el-select style="width: 200px;" v-model="updateForm.sendId" placeholder="请选择">
+									<el-option
+											v-for="item in updateForm.aislelist"
+											:key="item.sendId"
+											:label="item.sendName"
+											:value="item.sendId">
+									</el-option>
+								</el-select>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td class="tdlable">&nbsp;所属系统:&nbsp;</td>
+						 	<td class="formtd">
+								<el-select style="width: 200px;" v-model="updateForm.sysId" placeholder="请选择">
+									<el-option
+											v-for="item in updateForm.syslist"
+											:key="item.sysId"
+											:label="item.sysName"
+											:value="item.sysId">
+									</el-option>
+								</el-select>
+							</td>
+					 	</tr>
+						<tr>
+							<td class="tdlable">&nbsp;短信秘钥:&nbsp;</td>
+							<td class="formtd">
+								<el-input style="width: 200px;" v-model="updateForm.privateKey" placeholder="短信秘钥"></el-input>
+							</td>
+						</tr>
+					 	<tr>
+						 	<td colspan="2">
+								<div style="width: 75%;padding-left: 12%;padding-top: 5px;">{{updateForm.templateParp}}</div>
+							</td>
+					 	</tr>
+
+				 	</table>
+
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button id="formbtnadd" type="primary" @click="insertsubcode">确认提交</el-button>
+					    <el-button id="formbtnedit" style="display:none" type="primary" @click="updateScode">确认提交</el-button>
+					</div>
+				 	
+				</el-dialog>
+				<!-- 添加短信弹层 -->
+				<el-dialog title="发送短信" :visible.sync="sendlog" class="updateP">
+				 	<table id="sendTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;width:100%;">
+					 	<tr>
+						 	<td class="tdlable">&nbsp;短信id:&nbsp;</td>
+						 	<td class="formtd">
+						 		<el-input style="width: 200px;" v-model="sendForm.smsId" placeholder="短信id"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td class="tdlable">&nbsp;手机号码:&nbsp;</td>
+						 	<td class="formtd">
+						 		<el-input style="width: 200px;" v-model="sendForm.mobile" placeholder="手机号码"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td class="tdlable">&nbsp;短信密钥:&nbsp;</td>
+						 	<td class="formtd">
+						 		<el-input style="width: 200px;" v-model="sendForm.privateKey" placeholder="短信密钥"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td class="tdlable">&nbsp;短信内容:&nbsp;</td>
+						 	<td class="formtd">
+						 		<el-input style="width: 200px;" v-model="sendForm.message" placeholder="短信内容"></el-input>
+								<p>注: 参数以^区分，例：1^测试电影票^00000</p>
+							</td>
+					 	</tr>
+				 	</table>
+
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button id="formbtnadd" type="primary" @click="send">确认提交</el-button>
+					</div>
+
+				</el-dialog>
+
+			</el-card>
+
+		</div>
+	</body>
+	<script type="text/javascript" th:inline="javascript">
+	   
+	   var loading;
+	   var vm;
+	   $(function(){
+		   vm = new Vue({
+				el: "#app",
+				data: {
+					tableLoading : false,
+					sendlog : false,
+					dialogUpdate : false,
+					uploadData : '',
+					tableData: [],
+					total: 0,
+					pageSize : 8,
+					pageNum : 1,
+					state : '',
+					stateList : [{
+				          value: '',
+				          label: '全部'
+				        }, {
+				          value: '0',
+				          label: '冻结'
+				        }, {
+				          value: '1',
+				          label: '启用'
+				        }],
+					id : '',
+					selectStartTime : '',
+					selectEndTime : '',
+					sendForm:{
+						message:'',
+						smsId:'',
+						privateKey:'',
+						mobile:''
+					},
+					updateForm :{
+						id:'',
+						templateParp:'',
+						templateId :'',
+				  		msglist : [],
+						subcode:'',
+						subcodelist:[],
+						sendId:'',
+						aislelist:'',
+						sysId:'',
+						syslist:[],
+						privateKey:''
+					}
+				},
+				mounted:function(){//初始化数据
+					selallInfo();
+					listData(this);
+				},
+				methods: {
+					updateData(){//编辑按钮
+						close();
+						//打开弹层 
+						this.dialogUpdate = true;
+						$("#formbtnadd").show();
+						$("#formbtnedit").hide();
+						
+					},
+					resetSelectData(){//重置查询
+						this.pageNum = 1;
+						this.pageSize = 8;
+						this.id = '';
+						this.state = '';
+						this.selectStartTime = '';
+						this.selectEndTime = '';
+						listData(this);
+					},
+					selectData(){//查询 
+						listData(this);
+					},
+					handleCurrentChange(val) {
+						this.pageNum = val;
+						listData(this);
+					},
+					free(row){//冻结/jiedong
+						var state ;
+						if(row.state == 1){
+							state = 0;
+						}else{
+							state = 1;
+						}
+						freeData(row.id,state);
+					},
+					 showstate(row){
+					 	if(row.state=="1"){
+					 		return "已启用";
+					 	}else{
+					 		return "已冻结";
+					 	}
+					 }
+
+				},
+			});
+	   });
+		 	// 获取订单列表数据  
+			function listData(vm){
+			   //发送ajax
+			   $.ajax({
+				   type : 'post',
+				   url : ctxPath + 'm/sms/querylist',
+				   data : {
+					   intPage : vm.pageNum,
+					   state : vm.state,
+					   start:vm.selectStartTime,
+					   end:vm.selectEndTime,
+					   name:vm.id
+				   },
+				   dataType:'json',
+				   	beforeSend : function(){
+				   		vm.tableLoading = true;
+					},
+					complete : function(){
+						vm.tableLoading = false;
+					},
+				   success : function(data){
+				 	   if(data.state=="success"){
+				 	   var pageInfo=data.pageInfo;
+						    vm.total = pageInfo.total;
+						   vm.tableData = pageInfo.list;
+					   }else{
+						   vm.tableData = []; 
+					   } 
+				   }
+			   });
+		   }
+			function send(){
+			   //发送ajax
+			   $.ajax({
+				   type : 'post',
+				   url : ctxPath + 'api/test',
+				   data :vm.sendForm,
+				   dataType:'json',
+				   	beforeSend : function(){
+				   		vm.sendlog = true;
+					},
+				   success : function(data){
+				 	   if(data.status=="success"){
+						   vm.sendlog=false;
+						   alert('成功');
+					   }
+				   }
+			   });
+		   }
+		function editData(row){
+			//打开弹层 
+			vm.dialogUpdate = true;
+			vm.updateForm.id=row.id;
+			vm.updateForm.templateId=row.templateId;
+			vm.updateForm.sendId=row.sendId;
+			vm.updateForm.sysId=row.sysId;
+			vm.updateForm.subcode=row.subcode;
+			vm.updateForm.templateParp=row.templateParp;
+			vm.updateForm.privateKey=row.privateKey;
+
+			$("#formbtnadd").hide();
+			$("#formbtnedit").show();
+		}   
+		function sendCode(){
+			//打开弹层
+			vm.sendlog=true;
+
+		}
+		function freeData(id,state){
+			$.ajax({
+				type : 'post',
+				url : ctxPath + 'm/sms/updatestate',
+				data :{
+					id : id,
+					state : state 
+				},
+				success : function(res){
+					if(res.state!='success'&&res.msg!=''){
+						 vm.$message({
+					          message: res.msg,
+					          type: 'error'
+					        });
+	    			}else{
+	    				listData(vm);
+	    			}
+				}
+			});
+		}
+		function close(){
+			vm.dialogUpdate = false;
+			vm.updateForm.id='';
+			vm.updateForm.templateId='';
+			vm.updateForm.templateParp='';
+			vm.updateForm.subcode='';
+			vm.updateForm.sendId='';
+			vm.updateForm.sysId='';
+			vm.updateForm.privateKey='';
+			$("#showMsg").html('');
+		}
+		function insertsubcode(){
+		if(vm.updateForm.id==''){
+			vm.$message({
+				message: "请输入短信标识",
+				type: 'warnning'
+			});
+			return ;
+		}
+			if(vm.updateForm.templateId==''){
+			vm.$message({
+				message: "请选择短信模板",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.subcode==''){
+			vm.$message({
+				message: "请选择短信签名",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.sendId==''){
+			vm.$message({
+				message: "请选择短信通道",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.sysId==''){
+			vm.$message({
+				message: "请选择所属系统",
+				type: 'warnning'
+			});
+			return ;
+		}
+
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/sms/insertSms',
+		   data :vm.updateForm,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					close();
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+
+	function updateScode(){
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/sms/updateSms',
+		   data :vm.updateForm,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					vm.dialogUpdate = false;
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+var sysMap=new Map();
+var msgMap=new Map();
+var subcodeMap=new Map();
+var aisleMap=new Map();
+	function selallInfo(){
+			$.ajax({
+				url:ctxPath+'m/sms/selAllInfo',
+				dataType: 'json',
+				success:function (data) {
+					vm.updateForm.syslist=data.syslist;
+					vm.updateForm.aislelist=data.aislelist;
+					vm.updateForm.msglist=data.msglist;
+					for (i in data.msglist){
+						msgMap.put(data.msglist[i].templateId,data.msglist[i].msg);
+					}
+					vm.updateForm.subcodelist=data.subcodelist;
+					for (i in data.subcodelist){
+						subcodeMap.put(data.subcodelist[i].subcode,data.subcodelist[i].remarks);
+					}
+
+				}
+			});
+	   }
+	  function showSms(){
+			var subcode=subcodeMap.get(vm.updateForm.subcode)!=null?"【"+subcodeMap.get(vm.updateForm.subcode)+"】":"";
+			var msg=msgMap.get(vm.updateForm.templateId)!=null?msgMap.get(vm.updateForm.templateId):"";
+			var sms=subcode+msg;
+			vm.updateForm.templateParp=sms;
+	  }
+	</script>
+
+</html>

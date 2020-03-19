@@ -1,0 +1,1 @@
+var ctxPath = getRootPath()+"/";

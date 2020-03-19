@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+	<head>
+		<meta charset="UTF-8">
+		<base th:href="${#request.getContextPath()}+'/'">
+		<title></title>
+		<link rel="stylesheet" href="css/element-ui-2.12.0.css" />
+		<link rel="stylesheet" href="css/css.css" />
+		<script type="text/javascript" src="js/vue.min.js"></script>
+	    <script type="text/javascript" src="js/element-ui-2.12.0.js"></script>
+	    <script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+	    <script type="text/javascript" src="js/Tools.js"></script>
+	    <script type="text/javascript" src="js/myjs.js"></script>
+	    <script type="text/javascript" src="js/fecha.min.js"></script>
+	    <style type="text/css">
+	    .updateP .el-dialog{width :520px;}
+	    .formtd{width :350px;}
+	    </style>
+	</head>
+
+	<body>
+		<div id="app" v-cloak="">
+
+			<el-card class="box-card">
+				<table id="tableHtml" shadow="always" style="border-collapse:separate; border-spacing:0px 15px;">
+					<tr>
+						<td>&nbsp;模板Id:&nbsp;</td>
+						<td>
+							<el-input style="width: 200px;" v-model="templateId" placeholder="模板Id"></el-input>
+						</td>
+							<td>&nbsp;模板名称:&nbsp;</td>
+						<td>
+							<el-input style="width: 200px;" v-model="name" placeholder="模板名称"></el-input>
+						</td>
+						<td>&nbsp;短信编号:&nbsp;</td>
+						<td>
+							<el-input style="width: 200px;" v-model="mid" placeholder="短信编号"></el-input>
+						</td>
+						<td>&nbsp;模板状态:&nbsp;</td>
+						<td>
+							<el-select style="width: 200px;" v-model="state" placeholder="请选择">
+						    <el-option
+						      v-for="item in stateList"
+						      :key="item.value"
+						      :label="item.label"
+						      :value="item.value">
+						    </el-option>
+						  </el-select>
+						</td>
+					</tr>
+					<tr>
+					<td>&nbsp;添加时间:&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectStartTime"
+						      type="datetime"
+						      placeholder="开始时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td style="text-align: center;">&nbsp;-&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectEndTime"
+						      type="datetime"
+						      placeholder="结束时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td></td>
+						<td style="width: 250px; text-align: left;">
+							 <el-button type="primary" @click="selectData">查询</el-button>
+							 &nbsp;&nbsp;
+							<el-button type="info" @click="resetSelectData">重置</el-button>
+						</td>
+						<td style="width: 100px; text-align: left;">
+						 <el-button type="primary" @click="updateData">添加模板</el-button>
+						</td>
+					</tr>
+				</table>
+				<el-table :data="tableData" border style="width: 100%"  v-loading="tableLoading" row-key="templateId" stripe>
+					<el-table-column fixed prop="templateId" label="模板Id" width="130"></el-table-column>
+					<el-table-column prop="name" label="模板名称"></el-table-column>
+					<el-table-column prop="msg" label="模板内容"></el-table-column>
+					<el-table-column prop="mid" label="短信编号"></el-table-column>
+					<el-table-column prop="addTime" label="添加时间" ></el-table-column>
+					<el-table-column prop="state" label="状态" :formatter="showstate"></el-table-column>
+					<el-table-column prop="state" label="操作">
+                        <template slot-scope="scope" >
+							<el-button type="text" size="small" @click="free(scope.row)">{{scope.row.state ==1 ? "冻结" : "开启"}}</el-button>
+							<el-button type="text" size="small" @click="editData(scope.row)">编辑</el-button>
+						</template>
+					</el-table-column>
+					
+				</el-table>
+				<br />
+				<div class="block">
+					<el-pagination  @current-change="handleCurrentChange" :current-page="pageNum" :page-sizes="[8]" :page-size="pageSize" layout="total,  prev, pager, next, jumper" :total="total">
+					</el-pagination>
+				</div>
+				
+				
+				<!-- 添加模板弹层 -->
+				<el-dialog title="新增" :visible.sync="dialogadd" class="updateP">
+				 	<table id="addTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+					 	<tr>
+						 	<td>&nbsp;模板id:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd"> 
+						 		<el-input id="readonly" v-model="updateForm.templateId" placeholder=""></el-input>
+							</td>
+					 	</tr>
+					 	 	<tr>
+						 	<td>&nbsp;模板名称:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.name" placeholder=""></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;模板内容:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.msg" placeholder=""></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;短信编码:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.mid" placeholder=""></el-input>
+							</td>
+					 	</tr>
+				 	</table>
+				 	
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button type="primary" @click="inserttemplateId">确认提交</el-button>
+					</div>
+				 	
+				</el-dialog>
+				<!-- 添加模板弹层 -->
+				<el-dialog title="编辑" :visible.sync="dialogUpdate" class="updateP">
+				 	<table id="updateTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+					 	<tr>
+						 	<td>&nbsp;模板id:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input :disabled="true"  v-model="updateForm.templateId" placeholder=""></el-input>
+							</td>
+					 	</tr>
+					 	 	<tr>
+						 	<td>&nbsp;模板名称:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.name" placeholder=""></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;模板内容:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.msg" placeholder=""></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;短信编码:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.mid" placeholder=""></el-input>
+							</td>
+					 	</tr>
+				 	</table>
+
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button  type="primary" @click="updateItem">确认提交</el-button>
+					</div>
+
+				</el-dialog>
+
+			</el-card>
+
+		</div>
+	</body>
+	<script type="text/javascript" th:inline="javascript">
+	   
+	   var loading;
+	   var vm;
+	   $(function(){
+		   vm = new Vue({
+				el: "#app",
+				data: {
+					tableLoading : false,
+					dialogUpdate : false,
+					dialogadd : false,
+					uploadData : '',
+					tableData: [],
+					total: 0,
+					pageSize : 8,
+					pageNum : 1,
+					mid:'',
+					templateId:'',
+					name:'',					
+					state : '',
+					stateList : [{
+				          value: '',
+				          label: '全部'
+				        }, {
+				          value: '0',
+				          label: '冻结'
+				        }, {
+				          value: '1',
+				          label: '启用'
+				        }],
+					remarks : '',
+					selectStartTime : '',
+					selectEndTime : '',
+					updateForm :{
+						templateId : '',
+						name : '',					
+						msg : '',
+						mid:'',
+					}
+				},
+				mounted:function(){//初始化数据
+					listData(this);
+				},
+				methods: {
+					updateData(){//编辑按钮
+						close();
+						//打开弹层 
+						this.dialogadd = true;
+
+					},
+					resetSelectData(){//重置查询
+						this.pageNum = 1;
+						this.pageSize = 8;
+						this.templateId = '';
+						this.mid = '';
+						this.name = '';
+						this.state = '';
+						this.selectStartTime = '';
+						this.selectEndTime = '';
+						listData(this);
+					},
+					selectData(){//查询 
+						listData(this);
+					},
+					handleCurrentChange(val) {
+						this.pageNum = val;
+						listData(this);
+					},
+					free(row){//冻结/jiedong
+						var state ;
+						if(row.state == 1){
+							state = 0;
+						}else{
+							state = 1;
+						}
+						freeData(row.templateId,state);
+					},
+					 showstate(row){
+					 	if(row.state=="1"){
+					 		return "已启用";
+					 	}else{
+					 		return "已冻结";
+					 	}
+					 }
+				},
+			});
+	   });
+		 	// 获取订单列表数据  
+			function listData(vm){
+			   //发送ajax
+			   $.ajax({
+				   type : 'post',
+				   url : ctxPath + 'm/temp/querylist',
+				   data : {
+					   intPage : vm.pageNum,
+					   state : vm.state,
+					   start:vm.selectStartTime,
+					   end:vm.selectEndTime,
+					   name:vm.name,
+					   mid:vm.mid,
+					   templateId:vm.templateId
+				   },
+				   dataType:'json',
+				   	beforeSend : function(){
+				   		vm.tableLoading = true;
+					},
+					complete : function(){
+						vm.tableLoading = false;
+					},
+				   success : function(data){
+				 	   if(data.state=="success"){
+				 	   var pageInfo=data.pageInfo;
+						    vm.total = pageInfo.total;
+						   vm.tableData = pageInfo.list;
+					   }else{
+						   vm.tableData = []; 
+					   } 
+				   }
+			   });
+		   }
+		function editData(row){
+			//打开弹层 
+			vm.dialogUpdate = true;
+			vm.updateForm.templateId=row.templateId;
+			vm.updateForm.name=row.name;
+			vm.updateForm.msg=row.msg;
+			vm.updateForm.mid=row.mid;
+		}
+		function freeData(templateId,state){
+			$.ajax({
+				type : 'post',
+				url : ctxPath + 'm/temp/updatestate',
+				data :{
+					id : templateId,
+					state : state 
+				},
+				success : function(res){
+					if(res.state!='success'&&res.msg!=''){
+						 vm.$message({
+					          message: res.msg,
+					          type: 'error'
+					        });
+	    			}else{
+	    				listData(vm);
+	    			}
+				}
+			});
+		}
+		function close(){
+			vm.dialogUpdate = false;
+			vm.dialogadd = false;
+			vm.updateForm.mid='';
+			vm.updateForm.name='';
+			vm.updateForm.msg='';
+			vm.updateForm.templateId='';
+		}
+		function inserttemplateId(){
+		if(vm.updateForm.templateId==''){
+			vm.$message({
+				message: "请输入模板编号",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.name==''){
+			vm.$message({
+				message: "请输入模板名称",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.msg==''){
+			vm.$message({
+				message: "请输入模板内容",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.mid==''){
+			vm.$message({
+				message: "请输入短信编号",
+				type: 'warnning'
+			});
+			return ;
+		}
+		
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/temp/additem',
+		   data :vm.updateForm,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					close();
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+
+	function updateItem(){
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/temp/updateItem',
+		   data :vm.updateForm,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					vm.dialogUpdate = false;
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+	</script>
+
+</html>

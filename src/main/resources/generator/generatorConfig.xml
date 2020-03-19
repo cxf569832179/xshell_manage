@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<generatorConfiguration>
+    <!--  命令： mvn mybatis-generator:generate -->
+    <properties resource="application-dev.properties"/>
+
+    <context id="Mysql" targetRuntime="MyBatis3Simple" defaultModelType="flat">
+        <property name="beginningDelimiter" value="`"/>
+        <property name="endingDelimiter" value="`"/>
+
+        <plugin type="tk.mybatis.mapper.generator.MapperPlugin">
+            <property name="mappers" value="com.cy.util.MyMapper"/>
+        </plugin>
+
+        <jdbcConnection driverClass="${spring.datasource.driver-class-name}"
+                        connectionURL="${spring.datasource.url}"
+                        userId="${spring.datasource.username}"
+                        password="${spring.datasource.password}">
+        </jdbcConnection>
+
+        <javaModelGenerator targetPackage="me.ffs.www.model" targetProject="src/main/java"/>
+
+        <sqlMapGenerator targetPackage="mapper" targetProject="src/main/resources"/>
+
+        <javaClientGenerator targetPackage="me.ffs.www.dao.mapper" targetProject="src/main/java"
+                             type="XMLMAPPER"/>
+<!--
+
+        <table tableName="project_cate" domainObjectName="ProjectCate"></table>
+        <table tableName="send_aisle" domainObjectName="SendAisle"></table>
+        <table tableName="send_msg_log" domainObjectName="SendMsgLog"></table>
+        <table tableName="template_subcode" domainObjectName="TemplateSubcode"></table>
+        <table tableName="template_msg" domainObjectName="TemplateMsg"></table>
+        <table tableName="sms" domainObjectName="Sms"></table>
+-->
+
+        <table tableName="manage_user" domainObjectName="ManageUser"></table>
+    </context>
+</generatorConfiguration>

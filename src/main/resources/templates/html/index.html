@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+	<head>
+		<meta charset="UTF-8">
+		<title>短信管理系统</title>
+		<base th:href="${#request.getContextPath()}+'/'">
+		<link rel="stylesheet" href="css/element-ui-2.12.0.css" />
+		<link rel="stylesheet" href="css/css.css" />
+		<script type="text/javascript" src="js/vue.min.js"></script>
+	    <script type="text/javascript" src="js/element-ui-2.12.0.js"></script>
+	    <script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+	     <script type="text/javascript" src="js/Tools.js"></script>
+	    <script type="text/javascript" src="js/myjs.js"></script>
+		<style>
+			.el-dropdown {float: right;}
+			.el-header{height: 80px !important;
+					box-shadow: 0 1px 2px rgba(0,0,0,.2);
+					-moz-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+					-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+					-ms-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				background-color: #2d8ef3;"
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="app" v-cloak="">
+			<el-container>
+				<el-header  class="el-header">
+					<el-button @click="foldOpenOrClose" type="text" icon="el-icon-menu" style="font-size: 25px;margin-left: 20px;margin-top: 5px;"></el-button>
+					<el-image  style="padding-top:7px;" src="img/nblogo.png"></el-image>
+					<el-dropdown>
+						<span class="el-dropdown-link">
+							<el-button type="text" id="headButton">
+								<el-avatar icon="el-icon-user-solid" :src="headImg">
+								</el-avatar>
+							</el-button>
+		 				 </span>
+						<el-dropdown-menu slot="dropdown">
+						<!--	<el-dropdown-item @click.native="updatePsw()">修改密码</el-dropdown-item>-->
+							<el-dropdown-item @click.native="loginout()">注销登陆</el-dropdown-item>
+						</el-dropdown-menu>
+					</el-dropdown>
+
+				</el-header>
+
+				<el-container>
+					<el-aside>
+						<el-menu id="aside-el-menu" text-color="#303133" @select="selectOpen" active-text-color="#FFFFFF" :collapse="fold" :default-active="active_url" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose">
+							
+							 <el-menu-item index="m/subcode/index">
+								<i class="el-icon-chat-dot-square"></i>
+								<span slot="title">签名管理</span>
+							</el-menu-item>
+							
+							<el-menu-item index="m/temp/index">
+								<i class="el-icon-thumb"></i>
+								<span slot="title">模板管理</span>
+							</el-menu-item>
+							<el-menu-item index="m/aisle/index">
+								<i class="el-icon-s-promotion"></i>
+								<span slot="title">通道管理</span>
+							</el-menu-item>
+							
+							<el-menu-item index="m/sms/index">
+								<i class="el-icon-message"></i>
+								<span slot="title">短信管理</span>
+							</el-menu-item>
+							<el-menu-item index="m/smslog/index">
+								<i class="el-icon-message"></i>
+								<span slot="title">短信记录</span>
+							</el-menu-item>
+
+							<!-- 导航栏
+						 	<el-menu-item :index="it.url" v-for="(it, index) in navData" v-if="it.url != null">
+								<i :class="it.icon"></i>
+								<span slot="title">{{it.title}}</span>
+							</el-menu-item>
+							
+							<el-submenu :index="index" v-for="(it, index) in navData" v-if="it.url == null && it.childList != null">
+								<template slot="title">
+									<i :class="it.icon"></i>
+									<span>{{it.title}}</span>
+								</template>
+								
+								<-- 子菜单 -/->
+								<el-menu-item-group v-if="it.childList != null">
+									<el-menu-item :index="it_c.url" v-for="(it_c, index_c) in it.childList">{{it_c.title}}</el-menu-item>
+								</el-menu-item-group>
+								
+							</el-submenu>
+							 -->
+							
+						</el-menu>
+					</el-aside>
+
+					<el-main style="padding: 0px;">
+						<iframe src="welcome.html" frameborder="0" width="100%" height="100%" scrolling="auto" align="left" id="main-data-html"></iframe>
+					</el-main>
+
+				</el-container>
+			</el-container>
+			
+			<!-- 修改密码弹层 -->
+			<el-dialog title="修改密码" :close-on-click-modal="false" :visible.sync="dialogFormVisible">
+				<el-form :model="form">
+					<el-form-item label="旧密码">
+						<el-input v-model="form.oldPsw" autocomplete="off" maxlength="20" show-password></el-input>
+					</el-form-item>
+				<el-form-item label="新密码">
+						<el-input v-model="form.newPsw" autocomplete="off" maxlength="20" show-password></el-input>
+					</el-form-item>
+					<el-form-item label="确认密码">
+						<el-input v-model="form.conPsw" autocomplete="off" maxlength="20" show-password></el-input>
+					</el-form-item>
+				</el-form>
+				<div slot="footer" class="dialog-footer">
+					<el-button type="primary" @click="submit()">修改</el-button>
+				</div>
+			</el-dialog>
+			
+			
+		</div>
+	</body>
+	<script type="text/javascript" th:inline="javascript">
+
+	   $(function(){
+		   
+		   new Vue({
+				el: "#app",
+				data: {
+					dialogFormVisible : false,
+					active_url : '',
+					navData : [],
+					activeIndex: '',
+					fold: false,
+					headImg: '',
+					form : {
+						oldPsw : '',
+						newPsw : '',
+						conPsw : ''
+					}
+				},
+				mounted: function() {
+					$('.el-aside').css('width','210px');
+					initNavData(this);
+				},
+				methods: {
+					handleOpen(key, keyPath) {
+					},
+					handleClose(key, keyPath) {
+					},
+					handleSelect(key, keyPath) {
+					},
+					selectOpen(key, keyPath) {
+						$('#main-data-html').attr('src', key);
+					},
+					foldOpenOrClose() {
+						if(this.fold) {
+							this.fold = false;
+							$('.el-aside').css('width','210px');
+						} else {
+							this.fold = true;
+							$('.el-aside').css('width','65px');
+						}
+					},
+					errorHandler() {
+						return true;
+					},
+					loginout(){//退出
+						sessionStorage.removeItem("userperms");
+						location.href = ctxPath + 'm/login/logout';
+					},
+					updatePsw(){//打开修改密码弹层
+						this.form.oldPsw = '';
+						this.form.newPsw = '';
+						this.form.conPsw = '';
+						this.dialogFormVisible = true;
+					},
+					submit(){//开始修改 
+						if (this.form.oldPsw == '') {
+							this.$message({
+								message: '旧密码不能为空!',
+								type: 'error'
+							});
+							return false;
+						}
+						if (this.form.newPsw == '' || this.form.conPsw == '') {
+							this.$message({
+								message: '新密码不能为空!',
+								type: 'error'
+							});
+							return false;
+						}
+						updatePsw(this);
+					}
+				}
+			});
+		   
+		   function updatePsw(vmData){
+			   $.ajax({
+				   type : 'post',
+				   url : ctxPath + 'admin/updatePsw',
+				   data : {
+						oldPsw : vmData.form.oldPsw,
+						newPsw : vmData.form.newPsw,
+						conPsw : vmData.form.conPsw
+				   },
+				  success : function(res){
+					  var data = JSON.parse(res);
+					  if(data.state == 0){
+						  vmData.$message({
+								message: "密码修改成功",
+								type: 'success'
+							});
+						  vmData.dialogFormVisible = false;
+						  setTimeout(function(){ location.href= ctxPath + "admin/toLogout"; }, 2000); 
+					  }else{
+						  vmData.$message({
+								message: data.describe,
+								type: 'error'
+							});	
+					  }
+				  }
+			   });
+		   }
+		   
+		   function initNavData(vmData){
+			   /*  $.ajax({
+				   type : 'post',
+				   url : ctxPath + 'admin/getNavs',
+				   data : {},
+				   success : function(res){
+					   var data = JSON.parse(res);
+					   if(data){
+						   vmData.navData = data;
+						   $('#main-data-html').attr('src',data[0].url);
+						   vmData.active_url = data[0].url;
+					   }else{
+						   
+						   vmData.$alert('当前无可查看项', '提示', {
+						          confirmButtonText: '确定',
+						          callback: action => {
+						        	  location.href= ctxPath + "admin/toLogout";
+						          }
+						        });
+						   
+						   
+					   }
+				   }
+			   });  */
+		   }
+		   
+	   });
+		
+	</script>
+
+</html>

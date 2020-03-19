@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+	<head>
+		<meta charset="UTF-8">
+		<base th:href="${#request.getContextPath()}+'/'">
+		<title></title>
+		<link rel="stylesheet" href="css/element-ui-2.12.0.css" />
+		<link rel="stylesheet" href="css/css.css" />
+		<script type="text/javascript" src="js/vue.min.js"></script>
+	    <script type="text/javascript" src="js/element-ui-2.12.0.js"></script>
+	    <script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+	    <script type="text/javascript" src="js/Tools.js"></script>
+	    <script type="text/javascript" src="js/myjs.js"></script>
+	    <script type="text/javascript" src="js/fecha.min.js"></script>
+	    <style type="text/css">
+	     .updateP .el-dialog{width :520px;}
+	     .formtd{width :350px;}
+	    </style>
+	</head>
+
+	<body>
+		<div id="app" v-cloak="">
+
+			<el-card class="box-card">
+				<table id="tableHtml" shadow="always" style="border-collapse:separate; border-spacing:0px 15px;">
+					<tr>
+						<td>&nbsp;签名内容:&nbsp;</td>
+						<td>
+							<el-input style="width: 200px;" v-model="remarks" placeholder="签名内容"></el-input>
+						</td>
+						<td>&nbsp;签名状态:&nbsp;</td>
+						<td>
+							<el-select style="width: 200px;" v-model="state" placeholder="请选择">
+						    <el-option
+						      v-for="item in stateList"
+						      :key="item.value"
+						      :label="item.label"
+						      :value="item.value">
+						    </el-option>
+						  </el-select>
+						</td>
+						<td style="width: 100px; text-align: left;">
+						 <el-button type="primary" @click="updateData">添加标签</el-button>
+						</td>
+					</tr>
+					<tr>
+					<td>&nbsp;添加时间:&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectStartTime"
+						      type="datetime"
+						      placeholder="开始时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td style="text-align: center;">&nbsp;-&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectEndTime"
+						      type="datetime"
+						      placeholder="结束时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td style="width: 250px; text-align: left;">
+							 <el-button type="primary" @click="selectData">查询</el-button>
+							 &nbsp;&nbsp;
+							<el-button type="info" @click="resetSelectData">重置</el-button>
+						</td>
+					</tr>
+				</table>
+				<el-table :data="tableData" border style="width: 100%"  v-loading="tableLoading" row-key="subcode" stripe>
+					<el-table-column fixed prop="subcode" label="签名标识" width="130"></el-table-column>
+					<el-table-column prop="remarks" label="签名内容"></el-table-column>
+					<el-table-column prop="userName" label="用户姓名"></el-table-column>
+					<el-table-column prop="addTime" label="添加时间"></el-table-column>
+					<el-table-column prop="state" label="状态" :formatter="showstate"></el-table-column>
+					<el-table-column prop="state" label="操作">
+                        <template slot-scope="scope" >
+							<el-button type="text" size="small" @click="free(scope.row)">{{scope.row.state ==1 ? "冻结" : "开启"}}</el-button>
+							<el-button type="text" size="small" @click="editData(scope.row)">编辑</el-button>
+						</template>
+					</el-table-column>
+					
+				</el-table>
+				<br />
+				<div class="block">
+					<el-pagination  @current-change="handleCurrentChange" :current-page="pageNum" :page-sizes="[8]" :page-size="pageSize" layout="total,  prev, pager, next, jumper" :total="total">
+					</el-pagination>
+				</div>
+				
+				
+				<!-- 添加签名弹层 -->
+				<el-dialog title="新增" :visible.sync="dialogadd" class="updateP">
+				 	<table id="addTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+					 	<tr>
+						 	<td>&nbsp;签名标识:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.subcode" placeholder="签名标识"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;签名内容:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.remarks" placeholder="签名内容"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;账户名称:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.userName" placeholder="账户名称"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;密码:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.pass" placeholder="密码" type="password"></el-input>
+							</td>
+					 	</tr>
+				 	</table>
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button  type="primary" @click="insertsubcode">确认提交</el-button>
+					</div>
+				</el-dialog>
+				<!-- 添加签名弹层 -->
+				<el-dialog title="编辑" :visible.sync="dialogUpdate" class="updateP">
+				 	<table id="updateTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+					 	<tr>
+						 	<td>&nbsp;签名标识:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input :disabled="true" v-model="updateForm.subcode" ></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;签名内容:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.remarks" ></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;账户名称:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.userName"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;密码:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.pass"  type="password"></el-input>
+							</td>
+					 	</tr>
+				 	</table>
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button type="primary" @click="updateScode">确认提交</el-button>
+					</div>
+				</el-dialog>
+
+			</el-card>
+
+		</div>
+	</body>
+	<script type="text/javascript" th:inline="javascript">
+	   
+	   var loading;
+	   var vm;
+	   $(function(){
+		   vm = new Vue({
+				el: "#app",
+				data: {
+					tableLoading : false,
+					dialogUpdate : false,
+					dialogadd : false,
+					uploadData : '',
+					tableData: [],
+					total: 0,
+					pageSize : 8,
+					pageNum : 1,
+					state : '',
+					stateList : [{
+				          value: '',
+				          label: '全部'
+				        }, {
+				          value: '0',
+				          label: '冻结'
+				        }, {
+				          value: '1',
+				          label: '启用'
+				        }],
+					remarks : '',
+					selectStartTime : '',
+					selectEndTime : '',
+					updateForm :{
+						remarks : '',
+						userName : '',					
+						pass : '',
+						subcode:'',					
+					}
+				},
+				mounted:function(){//初始化数据
+					listData(this);
+				},
+				methods: {
+					updateData(){//新增按钮
+						close();
+						this.dialogadd = true;
+					},
+					resetSelectData(){//重置查询
+						this.pageNum = 1;
+						this.pageSize = 8;
+						this.remarks = '';
+						this.state = '';
+						this.selectStartTime = '';
+						this.selectEndTime = '';
+						listData(this);
+					},
+					selectData(){//查询 
+						listData(this);
+					},
+					handleCurrentChange(val) {
+						this.pageNum = val;
+						listData(this);
+					},
+					free(row){//冻结/jiedong
+						var state ;
+						if(row.state == 1){
+							state = 0;
+						}else{
+							state = 1;
+						}
+						freeData(row.subcode,state);
+					},
+					 showstate(row){
+					 	if(row.state=="1"){
+					 		return "已启用";
+					 	}else{
+					 		return "已冻结";
+					 	}
+					 }
+				},
+			});
+	   });
+		 	// 获取订单列表数据  
+			function listData(vm){
+			   //发送ajax
+			   $.ajax({
+				   type : 'post',
+				   url : ctxPath + 'm/subcode/querylist',
+				   data : {
+					   intPage : vm.pageNum,
+					   state : vm.state,
+					   start:vm.selectStartTime,
+					   end:vm.selectEndTime,
+					   remarks:vm.remarks
+				   },
+				   dataType:'json',
+				   	beforeSend : function(){
+				   		vm.tableLoading = true;
+					},
+					complete : function(){
+						vm.tableLoading = false;
+					},
+				   success : function(data){
+				 	   if(data.state=="success"){
+				 	   var pageInfo=data.pageInfo;
+						    vm.total = pageInfo.total;
+						   vm.tableData = pageInfo.list;
+					   }else{
+						   vm.tableData = []; 
+					   } 
+				   }
+			   });
+		   }
+		function editData(row){
+			//打开弹层 
+			vm.dialogUpdate = true;
+			vm.updateForm.remarks=row.remarks;
+			vm.updateForm.userName=row.userName;
+			vm.updateForm.pass=row.pass;
+			vm.updateForm.subcode=row.subcode;
+		}
+		function freeData(subcode,state){
+			$.ajax({
+				type : 'post',
+				url : ctxPath + 'm/subcode/updatestate',
+				data :{
+					id : subcode,
+					state : state 
+				},
+				success : function(res){
+					if(res.state!='success'&&res.msg!=''){
+						 vm.$message({
+					          message: res.msg,
+					          type: 'error'
+					        });
+	    			}else{
+	    				listData(vm);
+	    			}
+				}
+			});
+		}
+		function close(){
+			vm.dialogUpdate = false;
+			vm.dialogadd = false;
+			vm.updateForm.remarks='';
+			vm.updateForm.pass='';
+			vm.updateForm.userName='';
+			vm.updateForm.subcode='';
+			$("#readonly").attr("readonly",false);
+		}
+		function insertsubcode(){
+		if(vm.updateForm.remarks==''){
+			vm.$message({
+				message: "请输入签名名称",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.userName==''){
+			vm.$message({
+				message: "请输入用户名称",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.pass==''){
+			vm.$message({
+				message: "请输入密码",
+				type: 'warnning'
+			});
+			return ;
+		}
+		
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/subcode/insertSubcode',
+		   data :vm.updateForm,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					close();
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+
+	function updateScode(){
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/subcode/updateScode',
+		   data :vm.updateForm,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					vm.dialogUpdate = false;
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+	</script>
+
+</html>

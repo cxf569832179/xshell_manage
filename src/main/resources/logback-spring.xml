@@ -1,0 +1,96 @@
+<configuration scan="true" scanPeriod="10 seconds">  
+       <!-- 应用名称 -->
+	<property name="APP_NAME" value="xshell_manage_logs" />
+		<!--日志文件的保存路径,首先查找系统属性-Dlog.dir,如果存在就使用其；否则，在当前目录下创建名为logs目录做日志存放的目录 -->
+	<property name="LOG_HOME" value="${APP_NAME}" />
+	
+	<!-- 
+	<include resource="org/springframework/boot/logging/logback/base.xml" />
+	 -->
+    <logger name="org.springframework.web" level="warn"/>
+    
+
+  	<springProfile name="default">
+        <logger name="org.springboot.sample" level="TRACE" />
+    </springProfile>
+
+    <springProfile name="dev">
+        <logger name="org.springboot.sample" level="DEBUG" />
+    </springProfile>
+
+    <springProfile name="staging">
+        <logger name="org.springboot.sample" level="INFO" />
+    </springProfile>
+	
+  <!-- Simple file output -->  
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">  
+    <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->  
+    <encoder>  
+        <pattern>  
+            [ %-5level] [%date{yyyy-MM-dd HH:mm:ss}] %logger{96} [%line] - %msg%n  
+        </pattern>  
+        <charset>UTF-8</charset> <!-- 此处设置字符集 -->  
+    </encoder>  
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">  
+      <!-- rollover daily 配置日志所生成的目录以及生成文件名的规则 -->  
+      <fileNamePattern>${LOG_HOME}/info/log-%d{yyyy-MM-dd}.%i.log</fileNamePattern>  
+        <!-- each file should be at most 100MB, keep 60 days worth of history, but at most 20GB -->
+        <maxFileSize>100MB</maxFileSize>
+         <totalSizeCap>20GB</totalSizeCap>  
+      <maxHistory>60</maxHistory>  
+      <cleanHistoryOnStart>true</cleanHistoryOnStart>  
+    </rollingPolicy>  
+  
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">  
+      <level>DEBUG</level>  
+    </filter>  
+    <!-- Safely log to the same file from multiple JVMs. Degrades performance! -->  
+    <prudent>true</prudent>  
+  </appender>  
+  
+  
+  <!-- Console output -->  
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">  
+    <!-- encoder defaults to ch.qos.logback.classic.encoder.PatternLayoutEncoder -->  
+      <encoder>  
+          <pattern>  
+              [ %-5level] [%date{yyyy-MM-dd HH:mm:ss}] %logger{96} [%line] - %msg%n  
+          </pattern>  
+           <!-- 此处设置字符集 -->  
+        <!--   <charset>UTF-8</charset> -->
+      </encoder>  
+    <!-- Only log level WARN and above -->  
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">  
+      <level>DEBUG</level>
+    </filter>  
+  </appender>  
+  
+  
+	<!-- 错误日志：用于将错误日志输出到独立文件 -->
+	<appender name="ERROR_FILE"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_HOME}/error/%d{yyyy-MM-dd}.log</fileNamePattern>
+			<maxHistory>70</maxHistory>
+		</rollingPolicy>
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>[ %d{yyyy-MM-dd HH:mm:ss:SSS} ] %logger{96} [ %line ]-[ %t:%r ] [ %p ] %m %n</pattern>
+		</encoder>
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>WARN</level>
+		</filter>
+	</appender>
+  <!-- Enable FILE and STDOUT appenders for all log messages.  
+       By default, only log at level INFO and above. -->  
+  <root level="DEBUG">
+  
+    <appender-ref ref="ERROR_FILE" />  
+    <appender-ref ref="FILE" />
+    <appender-ref ref="STDOUT" />
+  </root>  
+  
+  <!-- For loggers in the these namespaces, log at all levels. -->
+  <logger name="pedestal" level="ALL" />
+  <logger name="hammock-cafe" level="ALL" />
+  <logger name="user" level="ALL" />
+</configuration> 

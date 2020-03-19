@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+	<head>
+		<meta charset="UTF-8">
+		<base th:href="${#request.getContextPath()}+'/'">
+		<title></title>
+		<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+		<script type="text/javascript" src="js/Tools.js"></script>
+		<script type="text/javascript" src="js/myjs.js"></script>
+		<link rel="stylesheet" href="css/element-ui-2.12.0.css" />
+		<link rel="stylesheet" href="css/css.css" />
+		<script type="text/javascript" src="js/vue.min.js"></script>
+		<script type="text/javascript" src="js/element-ui-2.12.0.js"></script>
+	    <style type="text/css">
+	    .updateP .el-dialog{width :520px;}
+	    .formtd{width :350px;}
+	    </style>
+	</head>
+
+	<body>
+		<div id="app" v-cloak="">
+
+			<el-card class="box-card">
+				<table id="tableHtml" shadow="always" style="border-collapse:separate; border-spacing:0px 15px;">
+					<tr>
+						<td>&nbsp;通道标题:&nbsp;</td>
+						<td>
+							<el-input style="width: 200px;" v-model="sendName" placeholder="通道标题"></el-input>
+						</td>
+						<td>&nbsp;通道状态:&nbsp;</td>
+						<td>
+							<el-select style="width: 200px;" v-model="state" placeholder="请选择">
+						    <el-option
+						      v-for="item in stateList"
+						      :key="item.value"
+						      :label="item.label"
+						      :value="item.value">
+						    </el-option>
+						  </el-select>
+						</td>
+						<td style="width: 100px; text-align: left;">
+						 <el-button type="primary" @click="updateData">添加通道</el-button>
+						</td>
+					</tr>
+					<tr>
+					<td>&nbsp;添加时间:&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectStartTime"
+						      type="datetime"
+						      placeholder="开始时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td style="text-align: center;">&nbsp;-&nbsp;</td>
+						<td>
+							<el-date-picker style="width: 200px;"
+						      v-model="selectEndTime"
+						      type="datetime"
+						      placeholder="结束时间"
+						      value-format="yyyy-MM-dd HH:mm:ss">
+						    </el-date-picker>
+						</td>
+						<td style="width: 250px; text-align: left;">
+							 <el-button type="primary" @click="selectData">查询</el-button>
+							 &nbsp;&nbsp;
+							<el-button type="info" @click="resetSelectData">重置</el-button>
+						</td>
+					</tr>
+				</table>
+				<el-table :data="tableData" border style="width: 100%"  v-loading="tableLoading" row-key="subcode" stripe>
+					<el-table-column fixed prop="sendId" label="通道标识" width="130">	</el-table-column>
+					<el-table-column prop="sendName" label="通道名称"></el-table-column>
+					<el-table-column prop="url" label="通道链接"></el-table-column>
+					<el-table-column prop="sendParp" label="参数组成">	</el-table-column>
+					<el-table-column prop="epid" label="epid">	</el-table-column>
+					<el-table-column prop="addTime" label="添加时间" ></el-table-column>
+					<el-table-column prop="state" label="状态" :formatter="showstate"></el-table-column>
+					<el-table-column prop="state" label="操作">
+                        <template slot-scope="scope" >
+							<el-button type="text" size="small" @click="free(scope.row)">{{scope.row.state ==1 ? "冻结" : "开启"}}</el-button>
+							<el-button type="text" size="small" @click="editData(scope.row)">编辑</el-button>
+						</template>
+					</el-table-column>
+					
+				</el-table>
+				<br />
+				<div class="block">
+					<el-pagination  @current-change="handleCurrentChange" :current-page="pageNum" :page-sizes="[8]" :page-size="pageSize" layout="total,  prev, pager, next, jumper" :total="total">
+					</el-pagination>
+				</div>
+				
+				
+				<!-- 添加通道弹层 -->
+				<el-dialog title="添加" :visible.sync="dialogadd" class="updateP">
+				 	<table id="addTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+					 	<tr>
+						 	<td>&nbsp;通道标识:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.sendId" placeholder="通道标识"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;通道名称:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.sendName"  placeholder="通道名称"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;通道链接:&nbsp;</td>
+						 	<td style="text-align: left;"  class="formtd">
+						 		<el-input v-model="updateForm.url" placeholder="通道链接"></el-input>
+							</td>
+					 	</tr>
+                        <tr>
+                            <td>&nbsp;EPID:&nbsp;</td>
+                            <td style="text-align: left;"  class="formtd">
+                                <el-input v-model="updateForm.epid" placeholder="EPID"></el-input>
+                            </td>
+                        </tr>
+					 	<tr>
+						 	<td>&nbsp;通道参数:&nbsp;</td>
+						 	<td style="text-align: left;"  class="formtd">
+                                <table shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+                                    <tr>
+                                        <td>&nbsp;userName:&nbsp;</td>
+                                        <td><el-input v-model="item.userName"/></td>
+                                        <td>&nbsp;passWord:&nbsp;</td>
+                                        <td><el-input v-model="item.passWord"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;phone:&nbsp;</td>
+                                        <td><el-input v-model="item.phone" /></td>
+                                        <td>&nbsp;message:&nbsp;</td>
+                                        <td><el-input v-model="item.message"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;epid:&nbsp;</td>
+                                        <td><el-input v-model="item.ePids" /></td>
+                                        <td>&nbsp;mid:&nbsp;</td>
+                                        <td><el-input v-model="item.mid" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;linkId:&nbsp;</td>
+                                        <td><el-input v-model="item.linkId" /></td>
+                                        <td>&nbsp;subcode:&nbsp;</td>
+                                        <td><el-input v-model="item.subcode"/></td>
+                                    </tr>
+                                </table>
+							</td>
+					 	</tr>
+				 	</table>
+
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button type="primary" @click="insertsubcode">确认提交</el-button>
+					</div>
+				 	
+				</el-dialog>
+
+				<!-- 添加通道弹层 -->
+				<el-dialog title="编辑" :visible.sync="dialogUpdate" class="updateP">
+				 	<table id="updateTable" shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+					 	<tr>
+						 	<td>&nbsp;通道标识:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input  :disabled="true" v-model="updateForm.sendId" placeholder="通道标识"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;通道名称:&nbsp;</td>
+						 	<td style="text-align: left;" class="formtd">
+						 		<el-input v-model="updateForm.sendName"  placeholder="通道名称"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;通道链接:&nbsp;</td>
+						 	<td style="text-align: left;"  class="formtd">
+						 		<el-input v-model="updateForm.url" placeholder="通道链接"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;EPID:&nbsp;</td>
+						 	<td style="text-align: left;"  class="formtd">
+						 		<el-input v-model="updateForm.epid" placeholder="epid"></el-input>
+							</td>
+					 	</tr>
+					 	<tr>
+						 	<td>&nbsp;通道参数:&nbsp;</td>
+						 	<td style="text-align: left;"  class="formtd">
+								<table shadow="always" style="border-collapse:separate; border-spacing:0px 10px;">
+									<tr>
+										<td>&nbsp;userName:&nbsp;</td>
+										<td><el-input v-model="item.userName"/></td>
+										<td>&nbsp;passWord:&nbsp;</td>
+										<td><el-input v-model="item.passWord"/></td>
+									</tr>
+                                    <tr>
+                                        <td>&nbsp;phone:&nbsp;</td>
+                                        <td><el-input v-model="item.phone" /></td>
+                                        <td>&nbsp;message:&nbsp;</td>
+                                        <td><el-input v-model="item.message"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;epid:&nbsp;</td>
+                                        <td><el-input v-model="item.ePids" /></td>
+										<td>&nbsp;mid:&nbsp;</td>
+										<td><el-input v-model="item.mid" /></td>
+                                    </tr>
+                                    <tr>
+										<td>&nbsp;linkId:&nbsp;</td>
+										<td><el-input v-model="item.linkId" /></td>
+										<td>&nbsp;subcode:&nbsp;</td>
+										<td><el-input v-model="item.subcode"/></td>
+									</tr>
+								</table>
+							</td>
+					 	</tr>
+				 	</table>
+
+				 	<div slot="footer" class="dialog-footer">
+					    <el-button  type="primary" @click="updateScode">确认提交</el-button>
+					</div>
+
+				</el-dialog>
+
+			</el-card>
+
+		</div>
+	</body>
+	<script type="text/javascript" th:inline="javascript">
+	   var loading;
+	   var vm;
+	   $(function(){
+		   vm = new Vue({
+				el: "#app",
+				data: {
+					tableLoading : false,
+					dialogUpdate : false,
+					dialogadd : false,
+					uploadData : '',
+					tableData: [],
+					total: 0,
+					pageSize : 8,
+					pageNum : 1,
+					state : '',
+					stateList : [{
+				          value: '',
+				          label: '全部'
+				        }, {
+				          value: '0',
+				          label: '冻结'
+				        }, {
+				          value: '1',
+				          label: '启用'
+				        }],
+					sendName : '',
+					selectStartTime : '',
+					selectEndTime : '',
+					updateForm :{
+						sendId : '',
+						sendName : '',
+						url : '',
+						epid:''
+					},
+                    item:{
+                        userName:'username',
+                        passWord:'password',
+                        linkId:'linkid',
+                        ePids:'epid',
+                        mid:'mid',
+                        message:'message',
+                        subcode:'subcode',
+                        phone:'phone'
+                    }
+				},
+				mounted:function(){//初始化数据
+					listData(this);
+				},
+				methods: {
+					updateData(){//新增按钮
+						close();
+						//打开弹层
+						this.dialogadd = true;
+					},
+					resetSelectData(){//重置查询
+						this.pageNum = 1;
+						this.pageSize = 8;
+						this.sendName = '';
+						this.state = '';
+						this.selectStartTime = '';
+						this.selectEndTime = '';
+						listData(this);
+					},
+					selectData(){//查询 
+						listData(this);
+					},
+					handleCurrentChange(val) {
+						this.pageNum = val;
+						listData(this);
+					},
+					free(row){//冻结/jiedong
+						var state ;
+						if(row.state == 1){
+							state = 0;
+						}else{
+							state = 1;
+						}
+						freeData(row.sendId,state);
+					},
+					 showstate(row){
+					 	if(row.state=="1"){
+					 		return "已启用";
+					 	}else{
+					 		return "已冻结";
+					 	}
+					}
+				},
+			});
+	   });
+	   // 获取订单列表数据
+			function listData(vm){
+			   //发送ajax
+			   $.ajax({
+				   type : 'post',
+				   url : ctxPath + 'm/aisle/querylist',
+				   data : {
+					   intPage : vm.pageNum,
+					   state : vm.state,
+					   start:vm.selectStartTime,
+					   end:vm.selectEndTime,
+					   name:vm.sendName
+				   },
+				   dataType:'json',
+				   	beforeSend : function(){
+				   		vm.tableLoading = true;
+					},
+					complete : function(){
+						vm.tableLoading = false;
+					},
+				   success : function(data){
+				 	   if(data.state=="success"){
+				 	   var pageInfo=data.pageInfo;
+						    vm.total = pageInfo.total;
+						   vm.tableData = pageInfo.list;
+					   }else{
+						   vm.tableData = []; 
+					   } 
+				   }
+			   });
+		   }
+		function editData(row){
+			//打开弹层
+			vm.dialogUpdate = true;
+			vm.updateForm.sendId=row.sendId;
+			vm.updateForm.sendName=row.sendName;
+			vm.updateForm.url=row.url;
+			vm.updateForm.epid=row.epid;
+			var data=$.parseJSON(row.sendParp);
+            vm.item.userName=data.userName;
+            vm.item.passWord=data.passWord;
+            vm.item.linkId=data.linkId;
+            vm.item.ePids=data.ePids;
+            vm.item.mid=data.mid;
+            vm.item.message=data.message;
+            vm.item.subcode=data.subcode;
+            vm.item.phone=data.phone;
+
+		}
+		function freeData(subcode,state){
+			$.ajax({
+				type : 'post',
+				url : ctxPath + 'm/aisle/updatestate',
+				data :{
+					id : subcode,
+					state : state 
+				},
+				success : function(res){
+					if(res.state!='success'&&res.msg!=''){
+						 vm.$message({
+					          message: res.msg,
+					          type: 'error'
+					        });
+	    			}else{
+	    				listData(vm);
+	    			}
+				}
+			});
+		}
+		function close(){
+			vm.dialogUpdate = false;
+			vm.dialogadd = false;
+			vm.updateForm.sendId='';
+			vm.updateForm.sendName='';
+			vm.updateForm.url='';
+			vm.updateForm.epid='';
+            vm.item.userName='username';
+            vm.item.passWord='password';
+            vm.item.linkId='linkid';
+            vm.item.ePids='epid';
+            vm.item.mid='mid';
+            vm.item.message='message';
+            vm.item.subcode='subcode';
+            vm.item.phone='phone';
+		}
+		function insertsubcode(){
+		if(vm.updateForm.sendName==''){
+			vm.$message({
+				message: "请输入通道名称",
+				type: 'warnning'
+			});
+			return ;
+		}
+			if(vm.updateForm.url==''){
+			vm.$message({
+				message: "请输入链接",
+				type: 'warnning'
+			});
+			return ;
+		}
+		if(vm.updateForm.item==''){
+			vm.$message({
+				message: "请输入参数",
+				type: 'warnning'
+			});
+			return ;
+		}
+		var dataparp = Object.assign(vm.updateForm,vm.item);
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/aisle/insertSubcode',
+		   data :dataparp,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					close();
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+
+	function updateScode(){
+        var dataparp = Object.assign(vm.updateForm,vm.item);
+        console.log(dataparp);
+		$.ajax({
+		   type : 'post',
+		   url : ctxPath + 'm/aisle/updateScode',
+		   data :dataparp,
+		   success:function(res){
+			   	if(res.state=='success'){
+			   		vm.$message({
+							message: res.msg,
+							type: 'success'
+						});
+					vm.dialogUpdate = false;
+					listData(vm);
+			   	}else{
+			   		vm.$message({
+						message: res.msg,
+						type: 'error'
+					});
+			   	}
+		   }
+		})
+	}
+	</script>
+
+</html>

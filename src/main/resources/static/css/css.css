@@ -1,0 +1,7 @@
+[v-cloak] {	display: none;}
+.el-header {background: #c0d2d4;padding: 0 0;}
+body {margin: 0px;}
+.el-menu-item.is-active {/*导航栏选中颜色*/background: #409EFF;}
+body,html,#app,.el-main,.el-container {	height: 100%;}
+.el-main {overflow: hidden;	background: #E4E7ED;padding: 10px;padding-right: 0px;}
+* {font-family: "微软雅黑";}

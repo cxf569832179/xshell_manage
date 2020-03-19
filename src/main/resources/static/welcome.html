@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>欢迎使用</title>
+<base th:href="${#request.getContextPath()}+'/'">
+<style type="text/css">
+	html,body{ margin:0px; padding:0px; background-color:#FFF; height:100%; width:100%;}
+	*{ margin:0px; padding:0px;}
+	div,dd,dl,ol,li,ul,span{ margin:0px; padding:0px; list-style:none;}
+	.wlmain{ height:100%; width:100%; background-color:#FFF; background-image:url(img/bei.png); background-repeat:repeat-x; background-position:bottom;}
+	
+	.wlmainnr{background-image:url(img/nrb.jpg?v1.2); background-position:bottom right; background-repeat:no-repeat; height:100%; width:100%;}
+	
+	.tuzi{ padding-left:30px;}
+	.tuzi img{ height:140px;}
+
+</style>
+</head>
+
+<body>
+<div class="wlmain">
+    <div class="wlmainnr">
+        <p class="tuzi"><img src="img/nrzi.png"></p>
+    </div>
+</div>
+</body>
+</html>
+
+

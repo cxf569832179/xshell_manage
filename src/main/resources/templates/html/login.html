@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <base th:href="${#request.getContextPath()}+'/'">
+    <title>短信管理平台</title>
+    <link rel="stylesheet" href="css/element-ui-2.12.0.css" />
+    <link rel="stylesheet" href="css/css.css" />
+    <script type="text/javascript" src="js/vue.min.js"></script>
+    <script type="text/javascript" src="js/element-ui-2.12.0.js"></script>
+    <script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src="js/Tools.js"></script>
+    <script type="text/javascript" src="js/myjs.js"></script>
+</head>
+<style>
+    html{height:100%;}
+    body{ background-image:url(img/dl-bei.jpg); background-position:center; background-repeat:no-repeat; height:100%; }
+
+    .maindl{ width:868px; margin:auto; top:50%; margin-top:-280px; background-color:#FFF; position:relative;}
+    .maintab{ }
+    .maintab-lf{ position:relative; float:left; width:380px;}
+    .maintab-lf img{ display:block; width:100%;}
+    .maintab-rg{ float:right; width:485px; padding-top:80px;}
+    .clear{ clear:both; height:0px;}
+    .dldl-logo{ text-align:center;}
+    .dldl-nr{ padding-top:50px;}
+    .el-image{ border-radius: 0px 4px 4px 0px; }
+    .el-input, #loginButton{width: 280px;}
+    #tableHtml {margin: auto; }
+    #tableHtml td{padding: 5px 0px;}
+</style>
+<body>
+<div class="maindl">
+
+    <div class="maintab">
+        <div class="maintab-lf"><img src="img/dl-tu1.jpg"></div>
+        <div class="maintab-rg">
+            <div class="dldl-logo"><img src="img/dl-logo.png"></div>
+            <div class="dldl-nr" style="text-align:center;">
+                <div id="app" v-cloak="">
+                  <!--  <span slot="label"><i class="el-icon-s-custom"></i> 登录</span>-->
+                      <table id="tableHtml" shadow="always">
+                        <tr>
+                            <td>
+                                <el-input prefix-icon="el-icon-s-custom" v-model="username" placeholder="请输入用户名"></el-input>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <el-input prefix-icon="el-icon-info" v-model="password" placeholder="请输入密码" show-password></el-input>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <el-input style="width : 270px;" id="codeImgInput" prefix-icon="el-icon-picture-outline" v-model="imgCode" placeholder="请输入验证码"></el-input>
+                                <el-image @click="changeImgCode" style="height: 40px;margin-bottom: -15px;margin-left: -95px;width: 100px;" :src="imgSrc"><i class="el-icon-picture-outline"></i></el-image>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <el-button id="loginButton" @click="loginTo" type="primary" style="background-color: rgb(234, 95, 52); border: solid 1px rgb(234, 95, 52);">登录</el-button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+</div>
+</body>
+<script type="text/javascript" th:inline="javascript">
+    var vm;
+    $(function(){
+        vm = new Vue({
+            el: '#app',
+            data: {
+                activeName : 'user',
+                username: '',
+                password: '',
+                imgCode: '',
+                imgSrc: ctxPath + 'm/login/random'
+            },
+            mounted:function(){
+                /* this.imgSrc = ctxPath + 'createImageCode?time=' + new Date();  */
+            },
+            methods: {
+                loginTo(){
+                    if(this.username == '' || this.password == '') {
+                        this.$message({
+                            message: '用户名或密码不能为空',
+                            type: 'error'
+                        });
+                        return false;
+                    }
+                    if (this.imgCode == '') {
+                        this.$message({
+                            message: '验证码不能为空',
+                            type: 'error'
+                        });
+                        return false;
+                    }
+                    loginV();
+                },
+                changeImgCode(){
+                    this.imgSrc = ctxPath + 'm/login/random?time=' + new Date();
+                }
+            }
+        });
+
+        function loginV(){//登录验证
+            $.ajax({
+                type : 'post',
+                url : ctxPath + 'm/login/login',
+                data :{
+                    username : vm.username,
+                    password : vm.password,
+                    imageCode : vm.imgCode
+                },
+                success : function(res){
+                    if (res.status == 'success') {
+                        vm.$message({
+                            message: '登录成功',
+                            type: 'success'
+                        });
+                        sessionStorage.setItem("usernamecurrent",vm.username);
+                        sessionStorage.removeItem("userperms");
+                        location.href = ctxPath + 'm/index';
+                    }else{
+                        vm.$message({
+                            message: res.msg,
+                            type: 'error'
+                        });
+                    }
+                    vm.imgSrc = ctxPath + 'm/login/random?time=' + new Date();
+                }
+            });
+        }
+
+        $(document).keyup(function(event) {//回车事件
+            if (event.keyCode == 13) {
+                if(vm.activeName == 'user'){
+                    vm.loginTo();
+                }else if(vm.activeName == 'phone'){
+                    vm.loginToByPhone();
+                }
+
+            }
+        });
+
+        //解决登录页面在iframe中
+        window.onload = function() {
+            if (top.location.href != location.href) {
+                top.location.href= ctxPath + 'm/login/index';
+            }
+        }
+
+    });
+
+</script>
+
+</html>
